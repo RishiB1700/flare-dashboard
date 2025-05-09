@@ -1,0 +1,3 @@
+"""
+FLARE Dashboard Tabs Package
+"""

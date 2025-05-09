@@ -1,0 +1,200 @@
+
+/* Custom styles for the FLARE dashboard */
+.main-header {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #FF5A5F;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
+}
+
+.sub-header {
+    font-family: Arial, sans-serif;
+    font-size: 0.9rem;
+    color: #888888;
+    margin-top: 0px;
+    padding-top: 0px;
+    margin-bottom: 30px;
+}
+
+.metric-card {
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.metric-label {
+    font-size: 1rem;
+    color: #666666;
+}
+
+.stage-healthy {
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.stage-friction {
+    background-color: #FFCA28;
+    color: black;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.stage-fatigue {
+    background-color: #FF9800;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.stage-failure {
+    background-color: #F44336;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.stage-unknown {
+    background-color: #9E9E9E;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.recommendation-card {
+    background-color: #F8F9FA;
+    border-left: 5px solid #007BFF;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 0 5px 5px 0;
+}
+
+.recommendation-high {
+    border-left: 5px solid #F44336;
+}
+
+.recommendation-medium {
+    border-left: 5px solid #FF9800;
+}
+
+.recommendation-low {
+    border-left: 5px solid #4CAF50;
+}
+
+.action-item {
+    padding: 8px 0 8px 20px;
+    border-bottom: 1px solid #EEEEEE;
+}
+
+.action-item:last-child {
+    border-bottom: none;
+}
+
+.stat-change-up {
+    color: #F44336;
+    font-size: 0.8rem;
+}
+
+.stat-change-down {
+    color: #4CAF50;
+    font-size: 0.8rem;
+}
+
+.dashboard-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.sidebar-logo {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Animated progress bar */
+.progress-container {
+    width: 100%;
+    background-color: #f1f1f1;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.progress-bar {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    width: 0;
+    transition: width 0.5s;
+}
+
+/* Custom tab styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    height: 50px;
+    white-space: pre-wrap;
+    background-color: white;
+    border-radius: 5px 5px 0 0;
+    gap: 1px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #FF5A5F !important;
+    color: white !important;
+}

@@ -1,0 +1,327 @@
+"""
+FLARE - Fatigue Learning and Adaptive Response Engine
+Main Dashboard Application Launcher
+
+This is the main entry point for the FLARE dashboard.
+"""
+import streamlit as st
+import pandas as pd
+import numpy as np
+import os
+from datetime import datetime, timedelta
+import sys
+import traceback
+import traceback
+
+# Add the current directory to path to ensure imports work
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import modules
+from ui.theme import apply_css, apply_theme_css
+from data.data_generator import load_sample_data
+from core.flare_utils import get_flare_engine, process_data, validate_data
+
+# Import tabs
+from tabs.overview import build_overview_tab
+from tabs.campaign_details import build_campaign_details_tab
+from tabs.recommendations import build_recommendations_tab
+from tabs.spend_analysis import build_spend_analysis_tab
+from tabs.ai_forecasting import build_ai_forecasting_tab
+
+# Page configuration must be the first Streamlit command
+st.set_page_config(
+    page_title="FLARE Ad Fatigue Dashboard",
+    page_icon="🔥",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+def main():
+    """Main function to run the FLARE dashboard"""
+    # Apply base CSS and load resources
+    apply_css()
+    flare = get_flare_engine()
+    
+    # Add debug container for diagnostics
+    debug_container = st.empty()
+    
+    # Initialize theme in session state if not present
+    if 'theme' not in st.session_state:
+        st.session_state.theme = "dark"  # Default to dark theme
+    
+    # Apply theme-specific CSS
+    apply_theme_css(st.session_state.theme)
+    
+    # Add dark/light mode toggle to sidebar
+    with st.sidebar:
+        st.markdown('<div class="sidebar-logo"><h2>FLARE</h2></div>', unsafe_allow_html=True)
+        st.markdown("---")
+        
+        # Theme selector
+        st.markdown("### Display Settings")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            light_clicked = st.button(
+                "Light", 
+                type="secondary" if st.session_state.theme == "dark" else "primary",
+                use_container_width=True
+            )
+            
+        with col2:
+            dark_clicked = st.button(
+                "Dark", 
+                type="primary" if st.session_state.theme == "dark" else "secondary",
+                use_container_width=True
+            )
+        
+        # Update theme state based on button clicks
+        if light_clicked and st.session_state.theme != "light":
+            st.session_state.theme = "light"
+            apply_theme_css("light")
+            st.rerun()
+            
+        if dark_clicked and st.session_state.theme != "dark":
+            st.session_state.theme = "dark"
+            apply_theme_css("dark")
+            st.rerun()
+        
+        # File upload section
+        st.markdown("---")
+        st.markdown("### Data Source")
+        uploaded_file = st.file_uploader("Upload Campaign Data (CSV)", type="csv")
+        use_sample = st.checkbox("Use sample data", value=True if not uploaded_file else False)
+        
+        # Process button
+        process_button = st.button("Process Data", type="primary", use_container_width=True)
+        
+        # Add Integration UI (Placeholder)
+        st.markdown("---")
+        st.markdown("### Connect to Ad Platforms (Coming Soon)")
+        st.text_input("Google Ads Account ID", disabled=True)
+        st.text_input("Meta Business Suite ID", disabled=True)
+        st.button("Connect", disabled=True)
+        
+        # Help and documentation
+        st.markdown("---")
+        st.markdown("### Help & Resources")
+        
+        with st.expander("About FLARE"):
+            st.markdown("""
+            FLARE is designed to detect ad fatigue in digital campaigns using a three-stage model:
+            
+            1. **Friction**: Early signs of wear, minor CTR drop
+            2. **Fatigue**: Engagement stagnation, rising CPA
+            3. **Failure**: Sharp ROI decline, continued delivery with little return
+            
+            The Fatigue Risk Index (FRI) score ranges from 0-100, with higher scores indicating more severe fatigue.
+            """)
+        
+        with st.expander("Understanding Metrics"):
+            st.markdown("""
+            - **CTR**: Click-Through Rate (clicks ÷ impressions)
+            - **CPA**: Cost Per Acquisition (spend ÷ conversions)
+            - **ROI**: Return on Investment (revenue ÷ spend)
+            - **FRI**: Fatigue Risk Index (0-100 scale measuring fatigue severity)
+            """)
+        
+        with st.expander("How to Use"):
+            st.markdown("""
+            1. Upload your campaign data CSV or use sample data
+            2. Click "Process Data" to analyze
+            3. Explore the dashboard tabs to see fatigue metrics and recommendations
+            4. Use insights to optimize your campaigns and reduce ad fatigue
+            """)
+            
+        # Debug section in sidebar
+        with st.expander("Debug Info"):
+            if st.button("Show Session State"):
+                st.write(st.session_state)
+            
+            if st.button("Clear Session State"):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.success("Session state cleared. Refresh page.")
+        
+        # Add version and credit
+        st.markdown("---")
+        st.markdown("v1.0.0 | Based on Capstone by Rishi Bhanushali")
+    
+    # Dashboard header
+    st.markdown('<p class="main-header">FLARE</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-header">Fatigue Learning and Adaptive Response Engine</p>', unsafe_allow_html=True)
+    
+    # Initialize tab selection in session state
+    if 'active_tab' not in st.session_state:
+        st.session_state.active_tab = "Overview"
+    
+    # Option to show content in all tabs for debugging
+    if 'show_all_tabs' not in st.session_state:
+        st.session_state.show_all_tabs = False
+    
+    # Check if we have a target campaign to show details for
+    if 'target_campaign' in st.session_state:
+        # Force switch to Campaign Details tab
+        st.session_state.active_tab = "Campaign Details"
+        # Set the selected campaign
+        st.session_state.selected_campaign = st.session_state.target_campaign
+        # Clear the target after navigation
+        del st.session_state.target_campaign
+        
+    # Handle tab click callbacks
+    def on_tab_click(tab_name):
+        st.session_state.active_tab = tab_name
+        st.experimental_rerun()
+    
+    # Data processing logic
+    data = None
+    analysis_complete = False
+    
+    # Load data (either uploaded or sample)
+    try:
+        if uploaded_file is not None:
+            # Always process uploaded file
+            data = pd.read_csv(uploaded_file)
+            st.sidebar.success("File uploaded successfully!")
+            
+            # Validate data
+            is_valid, message = validate_data(data)
+            if not is_valid:
+                st.error(f"{message}")
+                st.stop()
+            
+            if process_button:
+                # Process the uploaded data
+                with st.spinner("Processing campaign data..."):
+                    # Process data and show success
+                    flare = process_data(data)
+                    
+                    # Show partial analysis mode warning if needed
+                    if message:
+                        st.warning(f"{message}")
+                    
+                    # Flag that analysis is complete
+                    analysis_complete = True
+                        
+        elif use_sample and process_button:
+            data = load_sample_data()
+            st.sidebar.info("Using sample data")
+            
+            # Process the sample data
+            with st.spinner("Processing sample data..."):
+                # Process data
+                flare = process_data(data)
+                
+                # Flag that analysis is complete
+                analysis_complete = True
+                
+        elif process_button:
+            st.error("Please upload a CSV file or enable 'Use sample data'")
+    except Exception as e:
+        st.error(f"Error processing data: {str(e)}")
+        st.code(traceback.format_exc())
+    
+    # Display appropriate content based on state
+    if not analysis_complete and not process_button:
+        # Welcome screen with no extra white space
+        st.markdown("""
+        <div class="dashboard-card">
+            <h3>Welcome to the FLARE Dashboard</h3>
+            <p>FLARE analyzes your digital advertising campaigns to detect ad fatigue and provide actionable recommendations.</p>
+            <p>To get started:</p>
+            <ol>
+                <li>Upload your campaign data CSV or use the sample data option in the sidebar</li>
+                <li>Click the "Process Data" button to begin analysis</li>
+                <li>Explore the dashboard tabs to see insights and recommendations</li>
+            </ol>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Improved dashboard preview with proper styling
+        st.markdown("""
+        <div style="width:100%; text-align:center; padding:30px 0; background-color:#f0f0f0; border-radius:10px; margin-top:20px; margin-bottom:0;">
+            <h2 style="color:#333;">FLARE Dashboard</h2>
+            <p style="color:#666; margin-top:10px;">Process data to see fatigue insights and recommendations</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    elif analysis_complete:
+        # Radio buttons for navigation (more reliable than tabs)
+        tab_names = ["Overview", "Campaign Details", "Recommendations", "Spend Analysis", "AI Forecasting"]
+        
+        # Create a radio button for tab selection
+        st.markdown("## Dashboard Navigation")
+        selected_tab = st.radio(
+            "Select Section",
+            tab_names,
+            index=tab_names.index(st.session_state.active_tab),
+            horizontal=True,
+            key="tab_selector"
+        )
+        
+        # Update session state when tab changes
+        if selected_tab != st.session_state.active_tab:
+            st.session_state.active_tab = selected_tab
+            st.experimental_rerun()
+        
+        # Add a separator
+        st.divider()
+        
+        # Add debug options in sidebar
+        with st.sidebar:
+            if st.checkbox("Debug Mode", value=False):
+                st.write(f"Current tab: {st.session_state.active_tab}")
+                st.write("Direct Tab Navigation:")
+                for tab_name in tab_names:
+                    if st.button(f"Go to {tab_name}", key=f"goto_{tab_name}"):
+                        st.session_state.active_tab = tab_name
+                        st.experimental_rerun()
+        
+        # Display the appropriate tab content based on selection
+        try:
+            st.markdown(f"## {st.session_state.active_tab}")
+            
+            if st.session_state.active_tab == "Overview":
+                build_overview_tab(flare)
+            elif st.session_state.active_tab == "Campaign Details":
+                build_campaign_details_tab(flare)
+            elif st.session_state.active_tab == "Recommendations":
+                build_recommendations_tab(flare)
+            elif st.session_state.active_tab == "Spend Analysis":
+                build_spend_analysis_tab(flare)
+            elif st.session_state.active_tab == "AI Forecasting":
+                build_ai_forecasting_tab(flare)
+        except Exception as tab_error:
+            st.error(f"Error displaying {st.session_state.active_tab} tab: {str(tab_error)}")
+            st.code(traceback.format_exc())
+        
+        # Success message at the bottom
+        st.success("Analysis complete! Explore the sections above to see insights about your campaigns.")        except Exception as e:
+            # This will catch errors in tab creation itself
+            st.error(f"Error creating tabs: {str(e)}")
+            st.code(traceback.format_exc())
+            
+            # Attempt direct display of active tab content as fallback
+            st.subheader(f"Tab Content: {st.session_state.active_tab}")
+            
+            try:
+                if st.session_state.active_tab == "Overview":
+                    build_overview_tab(flare)
+                elif st.session_state.active_tab == "Campaign Details":
+                    build_campaign_details_tab(flare)
+                elif st.session_state.active_tab == "Recommendations":
+                    build_recommendations_tab(flare)
+                elif st.session_state.active_tab == "Spend Analysis":
+                    build_spend_analysis_tab(flare)
+                elif st.session_state.active_tab == "AI Forecasting":
+                    build_ai_forecasting_tab(flare)
+            except Exception as fallback_error:
+                st.error(f"Fallback display also failed: {str(fallback_error)}")
+
+# Run the app
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        st.error(f"Critical application error: {str(e)}")
+        st.code(traceback.format_exc())
